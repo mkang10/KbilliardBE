@@ -1,0 +1,17 @@
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { join } from 'path';
+
+export const typeOrmConfig: TypeOrmModuleOptions = {
+  type: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASS || '12345678',
+  database: process.env.DB_NAME || 'postgres',
+  entities: [join(__dirname, '../../**/*.entity.{ts,js}')],
+  // entities: [join(__dirname + '/../../../domain/entities/entities*.entity.ts')],
+  synchronize: false,
+};
+
+export const AppDataSource = new DataSource(typeOrmConfig as any);
