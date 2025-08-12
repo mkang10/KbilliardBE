@@ -11,91 +11,119 @@ import type { IUnitOfWork } from 'src/domain/repositories/unitofwork.repository.
 import { UNIT_OF_WORK_TOKEN } from 'src/domain/repositories/unitofwork.repository.interfaces';
 
 import { Suppliers } from 'src/domain/entities/entities/suppliers.entity';
-import { TransactionalHandler } from 'src/shared/transactional.handler';
 import { Like } from 'typeorm';
+
 @Injectable()
 export class SuppliersService {
-  private readonly transactional: TransactionalHandler;
   constructor(
     @Inject(UNIT_OF_WORK_TOKEN)
     private readonly unitOfWork: IUnitOfWork,
   ) {}
 
-  async create(
-    createSupplierDto: CreateSupplierDto,
-  ): Promise<SupplierResponseDto> {
-    const supplier = await this.transactional.run(async () => {
+  async create(createSupplierDto: CreateSupplierDto): Promise<SupplierResponseDto> {
+    await this.unitOfWork.start();
+    try {
       const repo = this.unitOfWork.getRepository(Suppliers);
-      return await repo.create(createSupplierDto);
-    }, 'Failed to create supplier');
-
-    return this.toResponseDto(supplier);
+      const supplier = await repo.create(createSupplierDto);
+      await this.unitOfWork.complete();
+      return this.toResponseDto(supplier);
+    } catch (error) {
+      await this.unitOfWork.rollback();
+      throw error;
+    } finally {
+      await this.unitOfWork.release();
+    }
   }
 
   async findAll(): Promise<SupplierResponseDto[]> {
-    const repo = this.unitOfWork.getRepository(Suppliers);
-    const suppliers = await repo.findAll({
-      relations: ['products'],
-      order: { supplierId: 'DESC' },
-    });
-    return suppliers.map(this.toResponseDto);
+    await this.unitOfWork.start();
+    try {
+      const repo = this.unitOfWork.getRepository(Suppliers);
+      const suppliers = await repo.findAll({
+        relations: ['products'],
+        order: { supplierId: 'DESC' },
+      });
+      return suppliers.map(this.toResponseDto);
+    } finally {
+      await this.unitOfWork.release();
+    }
   }
 
   async findById(id: number): Promise<SupplierResponseDto> {
-    const repo = this.unitOfWork.getRepository(Suppliers);
-    const supplier = await repo.findById(id, ['products']);
-    if (!supplier) {
-      throw new NotFoundException(`Supplier with ID ${id} not found`);
+    await this.unitOfWork.start();
+    try {
+      const repo = this.unitOfWork.getRepository(Suppliers);
+      const supplier = await repo.findById(id, ['products']);
+      if (!supplier) {
+        throw new NotFoundException(`Supplier with ID ${id} not found`);
+      }
+      return this.toResponseDto(supplier);
+    } finally {
+      await this.unitOfWork.release();
     }
-    return this.toResponseDto(supplier);
   }
 
   async findByName(name: string): Promise<SupplierResponseDto[]> {
-    const repo = this.unitOfWork.getRepository(Suppliers);
-    const suppliers = await repo.findByCondition({ name: Like(`%${name}%`) }, [
-      'products',
-    ]);
-    return suppliers.map(this.toResponseDto);
+    await this.unitOfWork.start();
+    try {
+      const repo = this.unitOfWork.getRepository(Suppliers);
+      const suppliers = await repo.findByCondition({ name: Like(`%${name}%`) }, ['products']);
+      return suppliers.map(this.toResponseDto);
+    } finally {
+      await this.unitOfWork.release();
+    }
   }
 
-  async update(
-    id: number,
-    updateSupplierDto: UpdateSupplierDto,
-  ): Promise<SupplierResponseDto> {
-    const repo = this.unitOfWork.getRepository(Suppliers);
-    const existing = await repo.findById(id, ['products']);
-    if (!existing) {
-      throw new NotFoundException(`Supplier with ID ${id} not found`);
+  async update(id: number, updateSupplierDto: UpdateSupplierDto): Promise<SupplierResponseDto> {
+    await this.unitOfWork.start();
+    try {
+      const repo = this.unitOfWork.getRepository(Suppliers);
+      const existing = await repo.findById(id, ['products']);
+      if (!existing) {
+        throw new NotFoundException(`Supplier with ID ${id} not found`);
+      }
+      const updated = await repo.update(id, updateSupplierDto);
+      await this.unitOfWork.complete();
+      return this.toResponseDto(updated);
+    } catch (error) {
+      await this.unitOfWork.rollback();
+      throw error;
+    } finally {
+      await this.unitOfWork.release();
     }
-
-    const updated = await this.transactional.run(async () => {
-      return await repo.update(id, updateSupplierDto);
-    }, 'Failed to update supplier');
-
-    return this.toResponseDto(updated);
   }
 
   async delete(id: number): Promise<{ message: string }> {
-    const repo = this.unitOfWork.getRepository(Suppliers);
-    const existing = await repo.findById(id);
-    if (!existing) {
-      throw new NotFoundException(`Supplier with ID ${id} not found`);
-    }
-
-    await this.transactional.run(async () => {
+    await this.unitOfWork.start();
+    try {
+      const repo = this.unitOfWork.getRepository(Suppliers);
+      const existing = await repo.findById(id);
+      if (!existing) {
+        throw new NotFoundException(`Supplier with ID ${id} not found`);
+      }
       const deleted = await repo.delete(id);
       if (!deleted) {
         throw new BadRequestException('Failed to delete supplier');
       }
-    }, 'Failed to delete supplier');
-
-    return { message: 'Supplier deleted successfully' };
+      await this.unitOfWork.complete();
+      return { message: 'Supplier deleted successfully' };
+    } catch (error) {
+      await this.unitOfWork.rollback();
+      throw error;
+    } finally {
+      await this.unitOfWork.release();
+    }
   }
 
   async getStats(): Promise<{ total: number }> {
-    const repo = this.unitOfWork.getRepository(Suppliers);
-    const total = await repo.count();
-    return { total };
+    await this.unitOfWork.start();
+    try {
+      const repo = this.unitOfWork.getRepository(Suppliers);
+      const total = await repo.count();
+      return { total };
+    } finally {
+      await this.unitOfWork.release();
+    }
   }
 
   private toResponseDto(supplier: any): SupplierResponseDto {

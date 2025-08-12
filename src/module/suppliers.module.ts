@@ -5,12 +5,13 @@ import { SuppliersController } from 'src/interfaces/controllers/suppliers.contro
 import { SuppliersService } from 'src/application/services/suppliers.service';
 import { SuppliersRepository } from 'src/infrastructure/repositories/suppliers.repository';
 import { SUPPLIERS_REPOSITORY_TOKEN } from 'src/domain/repositories/suppliers.repository.interface';
-import { UNIT_OF_WORK_TOKEN } from 'src/domain/repositories/unitofwork.repository.interfaces';
-import { UnitOfWorkModule } from './unitofwork.module';
+import { UnitOfWorkModule } from './unit-of-work.module';
+import { SharedModule } from './shared.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Suppliers]),
     UnitOfWorkModule,
+    SharedModule
   ],
   controllers: [SuppliersController],
   providers: [

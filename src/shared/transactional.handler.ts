@@ -1,10 +1,19 @@
-import { IUnitOfWork } from "src/domain/repositories/unitofwork.repository.interfaces";
-import { BadRequestException } from '@nestjs/common';
-
+import {
+  UNIT_OF_WORK_TOKEN,
+  type IUnitOfWork,
+} from 'src/domain/repositories/unitofwork.repository.interfaces';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+@Injectable()
 export class TransactionalHandler {
-  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  constructor(
+    @Inject(UNIT_OF_WORK_TOKEN)
+    private readonly unitOfWork: IUnitOfWork,
+  ) {}
 
-  async run<T>(operation: () => Promise<T>, errorMessage = 'Transaction failed'): Promise<T> {
+  async run<T>(
+    operation: () => Promise<T>,
+    errorMessage = 'Transaction failed',
+  ): Promise<T> {
     await this.unitOfWork.start();
     try {
       const result = await operation();

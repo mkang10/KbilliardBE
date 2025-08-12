@@ -11,6 +11,11 @@ import { UnitOfWork } from 'src/infrastructure/repositories/unitofwork.repositor
       useClass: UnitOfWork,
     },
   ],
-  exports: [UNIT_OF_WORK_TOKEN],
+  exports: [
+    {
+      provide: UNIT_OF_WORK_TOKEN,
+      useClass: UnitOfWork,
+    },
+  ],
 })
 export class UnitOfWorkModule {}
