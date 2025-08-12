@@ -10,7 +10,6 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   password: process.env.DB_PASS || '12345678',
   database: process.env.DB_NAME || 'postgres',
   entities: [join(__dirname, '../../**/*.entity.{ts,js}')],
-  // entities: [join(__dirname + '/../../../domain/entities/entities*.entity.ts')],
   synchronize: false,
 };
 
